@@ -1,0 +1,11 @@
+stages:
+  - mirror
+
+mirror:
+  stage: mirror
+  script:
+    - setsid ./ci/mirror.sh
+  only:
+    - /^(main.*)$/
+  tags:
+    - mirror

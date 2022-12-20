@@ -1,0 +1,105 @@
+version: "3.8"
+
+services:
+  todo_db:
+    image: postgres:9.4
+    container_name: todo_db
+    restart: always
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_PASSWORD=todo_passwd_456
+      - POSTGRES_USER=todo
+      - POSTGRES_DB=todo
+    volumes:
+      - ./data_volume:/var/lib/postgresql/data:z
+      - ./install.sql:/install.sql:ro
+    networks:
+      - todo_api
+    ports:
+      - 5436:5432
+  todo_api_java:
+    image: harbor.comwork.io/todoapi/java-api:latest
+    container_name: todo_api_java
+    restart: always
+    build:
+      context: java
+      dockerfile: Dockerfile
+      target: todo_api
+    networks:
+      - todo_api
+    depends_on:
+      - todo_db
+    ports:
+      - 5001:4999
+    env_file:
+      - .env
+  todo_api_fpm:
+    image: harbor.comwork.io/todoapi/php-fpm-api:latest
+    container_name: todo_api_fpm
+    restart: always
+    build:
+      context: php
+      dockerfile: Dockerfile
+      target: todo_api_fpm
+    networks:
+      - todo_api
+    depends_on:
+      - todo_db
+    ports:
+      - 9000:9000
+    env_file:
+      - .env
+  todo_api_nginx:
+    image: harbor.comwork.io/todoapi/php-nginx-api:latest
+    container_name: todo_api_nginx
+    restart: always
+    build:
+      context: php
+      dockerfile: Dockerfile
+      target: todo_api_nginx
+    networks:
+      - todo_api
+    depends_on:
+      - todo_db
+      - todo_api_fpm
+    ports:
+      - 5002:80
+    env_file:
+      - .env
+  todo_api_python:
+    image: harbor.comwork.io/todoapi/todo-python-api:latest
+    container_name: todo_api_python
+    restart: always
+    build:
+      context: python
+      dockerfile: Dockerfile
+      target: todo_api
+    networks:
+      - todo_api
+    depends_on:
+      - todo_db
+    ports:
+      - 5003:5000
+    env_file:
+      - .env
+  todo_ui:
+    image: harbor.comwork.io/todoapi/todo_ui:latest
+    container_name: todo_ui
+    restart: always
+    build:
+      context: front
+      dockerfile: Dockerfile
+      target: todo_ui
+    networks:
+      - todo_api
+    depends_on:
+      - todo_db
+    ports:
+      - 8666:80
+    env_file:
+      - .env
+
+
+networks:
+  todo_api:
+    driver: bridge
