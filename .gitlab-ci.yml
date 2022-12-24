@@ -1,11 +1,91 @@
-stages:
-  - mirror
+#stages:
+#  - mirror
+#
+#mirror:
+#  stage: mirror
+#  script:
+#    - setsid ./ci/mirror.sh
+#  only:
+#    - /^(main.*)$/
+#  tags:
+#    - mirror
 
-mirror:
-  stage: mirror
+stages:
+  - build-php
+  - build-python
+  - build-java
+  - build-frontend
+
+build-php:
+  image: docker:23.0.0-beta.1-cli
+  stage: build-php
+  services:
+    - name: docker:23.0.0-beta.1-cli-dind
+      alias: dockerhost
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+
   script:
-    - setsid ./ci/mirror.sh
+    - docker info
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+    - docker build -t ${DOCKERPATH}:todoapi-php ./todoapi/php
+    - docker push ${DOCKERPATH}:todoapi-php
   only:
-    - /^(main.*)$/
+    - build
+
+build-python:
+  image: docker:23.0.0-beta.1-cli
+  stage: build-python
+  services:
+    - name: docker:23.0.0-beta.1-cli-dind
+      alias: dockerhost
+
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+
+  script:
+    - docker info
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+    - docker build -t ${DOCKERPATH}:todoapi-python ./todoapi/python
+    - docker push ${DOCKERPATH}:todoapi-python
+
+  only:
+    - build
+
+build-java:
+  image: docker:23.0.0-beta.1-cli
+  stage: build-java
+  services:
+    - name: docker:23.0.0-beta.1-cli-dind
+      alias: dockerhost
+
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+
+  script:
+    - docker info
+    - docker login -u $DOCKERHUB_USERNAME -p "${DOCKERHUB_PASSWORD}"
+    - docker build -t ${DOCKERPATH}:todoapi-java ./todoapi/java
+    - docker push ${DOCKERPATH}:todoapi-java
+
+  only:
+    - build
+
+build-frontend:
+  image: docker:23.0.0-beta.1-cli
+  stage: build-frontend
+  services:
+    - name: docker:23.0.0-beta.1-cli-dind
+      alias: dockerhost
+
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+
+  script:
+    - docker info
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+    - docker build -t ${DOCKERPATH}:todoapi-front ./todoapi/front
+    - docker push ${DOCKERPATH}:todoapi-front
+
   tags:
-    - mirror
+    - build
